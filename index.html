@@ -61,6 +61,15 @@ canvas{width:100%;height:auto;display:block;margin-top:8px}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:6px}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .foot{color:var(--sub);font-size:11.5px;text-align:center;margin-top:26px}
+.when{font-size:11px;color:var(--accent2);font-weight:600;background:var(--panel2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;margin-left:auto;white-space:nowrap}
+.tl{display:flex;align-items:flex-start;margin:16px 0 6px;overflow-x:auto;padding-bottom:4px}
+.tl-node{flex:1 0 130px;text-align:center;position:relative}
+.tl-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);border:3px solid var(--panel);box-shadow:0 0 0 2px var(--accent);margin:2px auto 8px}
+.tl-node.end .tl-dot{background:var(--good);box-shadow:0 0 0 2px var(--good)}
+.tl-year{font-size:16px;font-weight:700}
+.tl-age{font-size:12px;color:var(--accent2);font-weight:600;margin-top:1px}
+.tl-ev{font-size:11.5px;color:var(--sub);margin-top:4px;line-height:1.35}
+.tl-line{flex:0 0 24px;height:2px;background:var(--line);margin-top:9px}
 .chip{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--sub)}
 .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
 button.act{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;
@@ -90,6 +99,13 @@ button.act:hover{border-color:var(--accent)}
     <div class="kpi"><div class="k">住宅ローン控除の総額</div><div class="v pos" id="k_loantax">–</div><div class="s">物件Bで受ける減税</div></div>
     <div class="kpi"><div class="k">物件B保有中の総支払利息</div><div class="v" id="k_interest">–</div><div class="s">売却時までの利息累計</div></div>
   </div>
+  <div class="tl">
+    <div class="tl-node"><div class="tl-dot"></div><div class="tl-year" id="tl0y">–</div><div class="tl-age" id="tl0a">–</div><div class="tl-ev">現自宅を売却<br>物件Bを購入</div></div>
+    <div class="tl-line"></div>
+    <div class="tl-node"><div class="tl-dot"></div><div class="tl-year" id="tl1y">–</div><div class="tl-age" id="tl1a">–</div><div class="tl-ev">物件Bを売却<br>終の住処を購入</div></div>
+    <div class="tl-line"></div>
+    <div class="tl-node end"><div class="tl-dot"></div><div class="tl-year" id="tl2y">–</div><div class="tl-age" id="tl2a">–</div><div class="tl-ev">終の住処<br>ローン完済</div></div>
+  </div>
   <canvas id="chart" width="1120" height="300"></canvas>
   <div class="legend">
     <span><i style="background:#3b82f6"></i>自己資金（頭金として繰越す手残り）</span>
@@ -102,9 +118,11 @@ button.act:hover{border-color:var(--accent)}
 
 <!-- ===== STAGE 1 ===== -->
 <div class="card">
-  <h2><span class="n">1</span>現在の自宅を売却</h2>
+  <h2><span class="n">1</span>現在の自宅を売却 <span class="when" id="s1_when">–</span></h2>
   <p class="desc">売却益は居住用3,000万円控除で基本的に非課税。手残りが物件Bの頭金になる。</p>
 
+  <div class="row"><label>売却する西暦（年）<span class="hint">この年に売却＝物件Bを購入すると想定</span></label><div class="inp"><input type="number" id="s1_year" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>売却時の年齢<span class="hint">基準年齢。以降の各イベントの年齢はここから自動計算</span></label><div class="inp"><input type="number" id="s1_age" class="narrow" step="1"><span class="u">歳</span></div></div>
   <div class="row"><label>売却金額</label><div class="inp"><input type="number" id="s1_sale" step="10"><span class="u">万</span></div></div>
   <div class="row"><label>取得価額<span class="hint">当初の購入価格＋購入時諸費用。不明なら売却額×5%が概算取得費</span></label><div class="inp"><input type="number" id="s1_acq" step="10"><span class="u">万</span></div></div>
   <div class="row"><label>住宅ローン残高（一括返済）</label><div class="inp"><input type="number" id="s1_loan" step="10"><span class="u">万</span></div></div>
@@ -144,7 +162,7 @@ button.act:hover{border-color:var(--accent)}
 
 <!-- ===== STAGE 2 buy ===== -->
 <div class="card">
-  <h2><span class="n">2</span>物件B（4LDK）を購入</h2>
+  <h2><span class="n">2</span>物件B（4LDK）を購入 <span class="when" id="s2_when">–</span></h2>
   <p class="desc">ステップ1の手残りを頭金に。残りを住宅ローンで調達し、数年住んで売却する。</p>
 
   <div class="row"><label>購入金額</label><div class="inp"><input type="number" id="s2_price" step="10"><span class="u">万</span></div></div>
@@ -178,10 +196,10 @@ button.act:hover{border-color:var(--accent)}
 
 <!-- ===== STAGE 2 sell ===== -->
 <div class="card">
-  <h2><span class="n">2'</span>物件B を売却（数年後）</h2>
+  <h2><span class="n">2'</span>物件B を売却（数年後） <span class="when" id="s2sell_when">–</span></h2>
   <p class="desc">「買った額で売れても」建物の減価償却で取得費が下がり、少し譲渡益が出る。ここが課税の肝。</p>
 
-  <div class="row"><label>保有年数（購入→売却）</label><div class="inp"><input type="number" id="s2_hold" class="narrow" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>保有年数（購入→売却）<span class="hint">この年数だけ経過した年に売却</span></label><div class="inp"><input type="number" id="s2_hold" class="narrow" step="1"><span class="u">年</span></div></div>
   <div class="row"><label>売却金額</label><div class="inp"><input type="number" id="s2_sale" step="10"><span class="u">万</span></div></div>
 
   <!-- 売却諸費用（自動算出） -->
@@ -222,19 +240,28 @@ button.act:hover{border-color:var(--accent)}
 
 <!-- ===== STAGE 3 ===== -->
 <div class="card">
-  <h2><span class="n">3</span>終の住処（2LDK）を購入</h2>
+  <h2><span class="n">3</span>終の住処（2LDK）を購入 <span class="when" id="s3_when">–</span></h2>
   <p class="desc">物件B売却の手残りを頭金に。残りのローンを完済できる期間かを確認する。</p>
 
   <div class="row"><label>購入金額</label><div class="inp"><input type="number" id="s3_price" step="10"><span class="u">万</span></div></div>
-  <div class="row"><label>購入諸費用</label><div class="inp"><input type="number" id="s3_buycost" step="10"><span class="u">万</span></div></div>
+
+  <!-- 購入諸費用（自動算出） -->
+  <div class="row"><label class="tog"><input type="checkbox" id="s3_buyautofee">購入諸費用を自動計算</label><span class="calc" id="s3_buyfeetotal">–</span></div>
+  <div id="s3_buyautorows">
+    <div class="row subrow"><label class="tog"><input type="checkbox" id="s3_buybroker">仲介手数料を含める（中古物件）<span class="hint">新築・売主直販なら外す</span></label><span class="calc" id="s3_buybrokerfee">–</span></div>
+    <div class="row subrow"><label>その他購入諸費用率<span class="hint">登記・司法書士・不動産取得税・印紙・火災保険・ローン事務/保証料等。中古3〜5%・新築2〜4%目安</span></label><div class="inp"><input type="number" id="s3_buyotherrate" class="narrow" step="0.1"><span class="u">%</span></div></div>
+    <div class="row subrow"><label>その他購入諸費用（自動）</label><span class="calc" id="s3_buyother">–</span></div>
+  </div>
+  <div class="row" id="s3_buymanualrow"><label>購入諸費用（手動）</label><div class="inp"><input type="number" id="s3_buycostmanual" step="10"><span class="u">万</span></div></div>
+
   <div class="row"><label>頭金（ステップ2手残り・自動）</label><span class="calc" id="s3_dp">–</span></div>
   <div class="row"><label>借入額（自動）</label><span class="calc" id="s3_loan">–</span></div>
 
   <div class="row"><label>ローン金利（年）</label><div class="inp"><input type="number" id="s3_rate" class="narrow" step="0.01"><span class="u">%</span></div></div>
   <div class="row"><label>ローン返済期間</label><div class="inp"><input type="number" id="s3_term" class="narrow" step="1"><span class="u">年</span></div></div>
   <div class="row"><label>毎月返済額（自動）</label><span class="calc" id="s3_pmt">–</span></div>
-  <div class="row"><label>現在年齢 → 完済時年齢</label><div class="inp"><input type="number" id="s3_age" class="narrow" step="1"><span class="u">歳</span></div></div>
-  <div class="row"><label>完済年齢（自動）</label><span class="calc" id="s3_ageout">–</span></div>
+  <div class="row"><label>購入時の年齢（自動）<span class="hint">物件B売却と同年</span></label><span class="calc" id="s3_agein">–</span></div>
+  <div class="row"><label>ローン完済年齢（自動）</label><span class="calc" id="s3_ageout">–</span></div>
 
   <div class="res">
     <div class="line big"><span>終の住処・購入後の借入残</span><b id="s3_loanout">–</b></div>
@@ -400,6 +427,7 @@ function compute(){
   $('s2_net').textContent = fmtMan(s2net);
 
   // --- Stage 3 ---
+  buyCost('s3', V('s3_price')); // 表示用（終の住処は売却しないため取得費計算には未使用）
   const dp3 = s2net;
   const loan3Man = Math.max(0, V('s3_price') - dp3);
   const loan3Yen = yen(loan3Man);
@@ -410,7 +438,20 @@ function compute(){
   $('s3_pmt').textContent = fmtYen(pmt3);
   $('s3_loanout').textContent = fmtMan(loan3Man);
   $('s3_total').textContent = fmtYen(total3);
-  $('s3_ageout').textContent = (V('s3_age')+V('s3_term')) + '歳';
+
+  // --- 時系列（年齢・西暦） ---
+  const age0=V('s1_age'), yr0=V('s1_year');
+  const age1=age0+hold2, yr1=yr0+hold2;               // 物件B売却＝終の住処購入
+  const age2=age1+V('s3_term'), yr2=yr1+V('s3_term'); // 終の住処ローン完済
+  $('s1_when').textContent  = yr0+'年・'+age0+'歳';
+  $('s2_when').textContent  = yr0+'年・'+age0+'歳';
+  $('s2sell_when').textContent = yr1+'年・'+age1+'歳';
+  $('s3_when').textContent  = yr1+'年・'+age1+'歳';
+  $('s3_agein').textContent = age1+'歳（'+yr1+'年）';
+  $('s3_ageout').textContent = age2+'歳（'+yr2+'年）';
+  $('tl0y').textContent=yr0+'年'; $('tl0a').textContent=age0+'歳';
+  $('tl1y').textContent=yr1+'年'; $('tl1a').textContent=age1+'歳';
+  $('tl2y').textContent=yr2+'年'; $('tl2a').textContent=age2+'歳';
 
   // --- 総合 ---
   const totalTax = s1.tax + g2.tax;
@@ -468,6 +509,7 @@ function drawChart(){
 // ===== プリセット =====
 const PRESETS = {
   base:{ // 先生の想定（現自宅は木造・15年保有／物件BはRC・14年保有・売価維持）
+    s1_year:2026, s1_age:47,
     s1_sale:4000, s1_acq:3200, s1_loan:1873,
     s1_autofee:true, s1_otherrate:1.0, s1_costmanual:250,
     s1_bratio:40, s1_struct:'0.031', s1_years:15, s1_3000:true,
@@ -476,9 +518,11 @@ const PRESETS = {
     s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
     s2_hold:14, s2_sale:6500, s2_autofee:true, s2_otherrate:1.0, s2_costmanual:344,
     s2_bratio:40, s2_struct:'0.015', s2_3000:true, s2_10yr:true,
-    s3_price:4000, s3_buycost:150, s3_rate:1.0, s3_term:10, s3_age:61
+    s3_price:4000, s3_buyautofee:true, s3_buybroker:true, s3_buyotherrate:3.0, s3_buycostmanual:150,
+    s3_rate:1.0, s3_term:10
   },
   rc:{ // 建物割合高め・木造・3000控除なしで税額が出るケース
+    s1_year:2026, s1_age:47,
     s1_sale:4000, s1_acq:3200, s1_loan:1873,
     s1_autofee:true, s1_otherrate:1.0, s1_costmanual:250,
     s1_bratio:40, s1_struct:'0.031', s1_years:15, s1_3000:true,
@@ -487,7 +531,8 @@ const PRESETS = {
     s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
     s2_hold:14, s2_sale:6500, s2_autofee:true, s2_otherrate:1.0, s2_costmanual:344,
     s2_bratio:55, s2_struct:'0.031', s2_3000:false, s2_10yr:true,
-    s3_price:4000, s3_buycost:150, s3_rate:1.0, s3_term:10, s3_age:61
+    s3_price:4000, s3_buyautofee:true, s3_buybroker:true, s3_buyotherrate:3.0, s3_buycostmanual:150,
+    s3_rate:1.0, s3_term:10
   }
 };
 function loadPreset(name){
