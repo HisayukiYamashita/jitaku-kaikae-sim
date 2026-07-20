@@ -32,9 +32,12 @@ h1{font-size:24px;margin:0 0 4px;letter-spacing:.02em}
 .inp{display:flex;align-items:center;gap:6px}
 .inp input[type=number]{width:96px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
   border-radius:8px;padding:7px 9px;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.inp input.narrow{width:72px}
 .inp input:focus{outline:2px solid var(--accent);border-color:transparent}
 .inp .u{color:var(--sub);font-size:12px;min-width:24px}
 .calc{color:var(--accent2);font-variant-numeric:tabular-nums;font-weight:600}
+.subrow{padding:4px 0 4px 12px;border-bottom:1px dotted var(--line)}
+.subrow label{font-size:12.5px;color:var(--sub)}
 .tog{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
 .tog input{width:16px;height:16px;accent-color:var(--accent)}
 select{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 8px;font-size:13px}
@@ -103,13 +106,32 @@ button.act:hover{border-color:var(--accent)}
   <p class="desc">売却益は居住用3,000万円控除で基本的に非課税。手残りが物件Bの頭金になる。</p>
 
   <div class="row"><label>売却金額</label><div class="inp"><input type="number" id="s1_sale" step="10"><span class="u">万</span></div></div>
-  <div class="row"><label>売却手数料・諸費用<span class="hint">仲介手数料＋予備費など</span></label><div class="inp"><input type="number" id="s1_cost" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>取得価額<span class="hint">当初の購入価格＋購入時諸費用。不明なら売却額×5%が概算取得費</span></label><div class="inp"><input type="number" id="s1_acq" step="10"><span class="u">万</span></div></div>
   <div class="row"><label>住宅ローン残高（一括返済）</label><div class="inp"><input type="number" id="s1_loan" step="10"><span class="u">万</span></div></div>
 
+  <!-- 売却諸費用（自動算出） -->
+  <div class="row"><label class="tog"><input type="checkbox" id="s1_autofee">売却手数料・諸費用を自動計算</label><span class="calc" id="s1_feetotal">–</span></div>
+  <div id="s1_autorows">
+    <div class="row subrow"><label>仲介手数料（速算式・税込）<span class="hint">売却額×3%＋6万＋消費税</span></label><span class="calc" id="s1_broker">–</span></div>
+    <div class="row subrow"><label>その他諸費用率<span class="hint">印紙・抵当権抹消・繰上手数料等。相場0.5〜1%</span></label><div class="inp"><input type="number" id="s1_otherrate" class="narrow" step="0.1"><span class="u">%</span></div></div>
+    <div class="row subrow"><label>その他諸費用（自動）</label><span class="calc" id="s1_other">–</span></div>
+  </div>
+  <div class="row" id="s1_manualrow"><label>売却手数料・諸費用（手動）</label><div class="inp"><input type="number" id="s1_costmanual" step="10"><span class="u">万</span></div></div>
+
   <details>
-    <summary>譲渡税の前提（取得費・所有期間）</summary>
-    <div class="row"><label>取得費（当初購入価額＋諸費用）<span class="hint">不明なら売却額×5%が概算取得費</span></label><div class="inp"><input type="number" id="s1_acq" step="10"><span class="u">万</span></div></div>
-    <div class="row"><label>所有期間</label><div class="inp"><input type="number" id="s1_years" step="1"><span class="u">年</span></div></div>
+    <summary>譲渡税の前提（減価償却・所有期間・特例）</summary>
+    <div class="row"><label>建物割合<span class="hint">取得価額のうち建物分。土地は非償却</span></label><div class="inp"><input type="number" id="s1_bratio" class="narrow" step="5" min="0" max="100"><span class="u">%</span></div></div>
+    <div class="row"><label>建物構造（償却率）</label>
+      <select id="s1_struct">
+        <option value="0.031">木造（0.031）</option>
+        <option value="0.036">軽量鉄骨（0.036）</option>
+        <option value="0.022">重量鉄骨（0.022）</option>
+        <option value="0.015">RC・SRC（0.015）</option>
+      </select>
+    </div>
+    <div class="row"><label>所有期間</label><div class="inp"><input type="number" id="s1_years" class="narrow" step="1"><span class="u">年</span></div></div>
+    <div class="row"><label>減価償却累計（自動）</label><span class="calc" id="s1_depr">–</span></div>
+    <div class="row"><label>取得費（償却後・自動）</label><span class="calc" id="s1_acqout">–</span></div>
     <div class="row"><label class="tog"><input type="checkbox" id="s1_3000">3,000万円特別控除を適用</label><span class="calc" id="s1_taxinfo"></span></div>
   </details>
 
@@ -127,20 +149,20 @@ button.act:hover{border-color:var(--accent)}
 
   <div class="row"><label>購入金額</label><div class="inp"><input type="number" id="s2_price" step="10"><span class="u">万</span></div></div>
   <div class="row"><label>購入諸費用<span class="hint">登記・仲介・税など。取得費に加算</span></label><div class="inp"><input type="number" id="s2_buycost" step="10"><span class="u">万</span></div></div>
-  <div class="row"><label>頭金に回す割合<span class="hint">ステップ1手残りのうち投入する割合</span></label><div class="inp"><input type="number" id="s2_dpratio" step="5" min="0" max="100"><span class="u">%</span></div></div>
+  <div class="row"><label>頭金に回す割合<span class="hint">ステップ1手残りのうち投入する割合</span></label><div class="inp"><input type="number" id="s2_dpratio" class="narrow" step="5" min="0" max="100"><span class="u">%</span></div></div>
   <div class="row"><label>頭金（自動）</label><span class="calc" id="s2_dp">–</span></div>
   <div class="row"><label>借入額（自動）</label><span class="calc" id="s2_loan">–</span></div>
 
-  <div class="row"><label>ローン金利（年）</label><div class="inp"><input type="number" id="s2_rate" step="0.01"><span class="u">%</span></div></div>
-  <div class="row"><label>ローン返済期間</label><div class="inp"><input type="number" id="s2_term" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>ローン金利（年）</label><div class="inp"><input type="number" id="s2_rate" class="narrow" step="0.01"><span class="u">%</span></div></div>
+  <div class="row"><label>ローン返済期間</label><div class="inp"><input type="number" id="s2_term" class="narrow" step="1"><span class="u">年</span></div></div>
   <div class="row"><label>毎月返済額（自動）</label><span class="calc" id="s2_pmt">–</span></div>
 
   <details>
     <summary>住宅ローン控除の前提</summary>
     <div class="row"><label class="tog"><input type="checkbox" id="s2_usehl">住宅ローン控除を適用</label></div>
     <div class="row"><label>借入限度額</label><div class="inp"><input type="number" id="s2_hllimit" step="100"><span class="u">万</span></div></div>
-    <div class="row"><label>控除率</label><div class="inp"><input type="number" id="s2_hlrate" step="0.1"><span class="u">%</span></div></div>
-    <div class="row"><label>控除期間</label><div class="inp"><input type="number" id="s2_hlyears" step="1"><span class="u">年</span></div></div>
+    <div class="row"><label>控除率</label><div class="inp"><input type="number" id="s2_hlrate" class="narrow" step="0.1"><span class="u">%</span></div></div>
+    <div class="row"><label>控除期間</label><div class="inp"><input type="number" id="s2_hlyears" class="narrow" step="1"><span class="u">年</span></div></div>
     <div class="row"><label>控除総額（概算）</label><span class="calc pos" id="s2_hltotal">–</span></div>
   </details>
 </div>
@@ -150,14 +172,23 @@ button.act:hover{border-color:var(--accent)}
   <h2><span class="n">2'</span>物件B を売却（数年後）</h2>
   <p class="desc">「買った額で売れても」建物の減価償却で取得費が下がり、少し譲渡益が出る。ここが課税の肝。</p>
 
-  <div class="row"><label>保有年数（購入→売却）</label><div class="inp"><input type="number" id="s2_hold" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>保有年数（購入→売却）</label><div class="inp"><input type="number" id="s2_hold" class="narrow" step="1"><span class="u">年</span></div></div>
   <div class="row"><label>売却金額</label><div class="inp"><input type="number" id="s2_sale" step="10"><span class="u">万</span></div></div>
-  <div class="row"><label>売却手数料・諸費用</label><div class="inp"><input type="number" id="s2_sellcost" step="10"><span class="u">万</span></div></div>
+
+  <!-- 売却諸費用（自動算出） -->
+  <div class="row"><label class="tog"><input type="checkbox" id="s2_autofee">売却手数料・諸費用を自動計算</label><span class="calc" id="s2_feetotal">–</span></div>
+  <div id="s2_autorows">
+    <div class="row subrow"><label>仲介手数料（速算式・税込）</label><span class="calc" id="s2_broker">–</span></div>
+    <div class="row subrow"><label>その他諸費用率<span class="hint">相場0.5〜1%。予備費を乗せるならここを上げる</span></label><div class="inp"><input type="number" id="s2_otherrate" class="narrow" step="0.1"><span class="u">%</span></div></div>
+    <div class="row subrow"><label>その他諸費用（自動）</label><span class="calc" id="s2_other">–</span></div>
+  </div>
+  <div class="row" id="s2_manualrow"><label>売却手数料・諸費用（手動）</label><div class="inp"><input type="number" id="s2_costmanual" step="10"><span class="u">万</span></div></div>
+
   <div class="row"><label>売却時ローン残高（自動）</label><span class="calc" id="s2_bal">–</span></div>
 
   <details open>
     <summary>譲渡税の前提（減価償却・特例）</summary>
-    <div class="row"><label>建物割合<span class="hint">購入価額のうち建物分。土地は非償却</span></label><div class="inp"><input type="number" id="s2_bratio" step="5" min="0" max="100"><span class="u">%</span></div></div>
+    <div class="row"><label>建物割合<span class="hint">購入価額のうち建物分。土地は非償却</span></label><div class="inp"><input type="number" id="s2_bratio" class="narrow" step="5" min="0" max="100"><span class="u">%</span></div></div>
     <div class="row"><label>建物構造（償却率）</label>
       <select id="s2_struct">
         <option value="0.015">RC・SRC（マンション 0.015）</option>
@@ -190,10 +221,10 @@ button.act:hover{border-color:var(--accent)}
   <div class="row"><label>頭金（ステップ2手残り・自動）</label><span class="calc" id="s3_dp">–</span></div>
   <div class="row"><label>借入額（自動）</label><span class="calc" id="s3_loan">–</span></div>
 
-  <div class="row"><label>ローン金利（年）</label><div class="inp"><input type="number" id="s3_rate" step="0.01"><span class="u">%</span></div></div>
-  <div class="row"><label>ローン返済期間</label><div class="inp"><input type="number" id="s3_term" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>ローン金利（年）</label><div class="inp"><input type="number" id="s3_rate" class="narrow" step="0.01"><span class="u">%</span></div></div>
+  <div class="row"><label>ローン返済期間</label><div class="inp"><input type="number" id="s3_term" class="narrow" step="1"><span class="u">年</span></div></div>
   <div class="row"><label>毎月返済額（自動）</label><span class="calc" id="s3_pmt">–</span></div>
-  <div class="row"><label>現在年齢 → 完済時年齢</label><div class="inp"><input type="number" id="s3_age" step="1"><span class="u">歳</span></div></div>
+  <div class="row"><label>現在年齢 → 完済時年齢</label><div class="inp"><input type="number" id="s3_age" class="narrow" step="1"><span class="u">歳</span></div></div>
   <div class="row"><label>完済年齢（自動）</label><span class="calc" id="s3_ageout">–</span></div>
 
   <div class="res">
@@ -208,8 +239,9 @@ button.act:hover{border-color:var(--accent)}
   <b>⚠ 税務判断のポイント（先生の最終確認事項）</b><br>
   ① <b>3,000万円特別控除</b>は「居住用財産」であること・買主が親族等でないこと・前年前々年に同特例を使っていないことが要件。物件Bの購入年前後に住宅ローン控除を使うと<b>併用不可</b>の年がある点に注意。<br>
   ② <b>10年超所有の軽減税率</b>は所有期間が売却年1/1時点で10年超のとき。物件Bの保有年数の置き方で適用可否が変わる。<br>
-  ③ <b>取得費の減価償却</b>は建物割合・構造で大きく動く。建物割合は契約書・固定資産税評価から実額を。<br>
-  ④ <b>住宅ローン控除</b>は概算（各年末残高×控除率、限度額頭打ち）。所得税・住民税の控除上限は未考慮なので、実額は所得次第で下振れあり。<br>
+  ③ <b>取得費の減価償却</b>は建物割合・構造で大きく動く。建物割合は契約書・固定資産税評価から実額を。取得価額が不明なら概算取得費（売却額×5%）。<br>
+  ④ <b>売却諸費用</b>の自動計算＝仲介手数料（速算式：売却額×3%＋6万＋消費税）＋その他諸費用（率）。相場は売却額の約3.5〜4%。予備費を厚く見るなら「その他諸費用率」を上げる。<br>
+  ⑤ <b>住宅ローン控除</b>は概算（各年末残高×控除率、限度額頭打ち）。所得税・住民税の控除上限は未考慮。<br>
   数値はすべて仮置き。最終的な適用可否・税額は山下先生の判断で確定。
 </div>
 
@@ -239,6 +271,24 @@ function balanceAfter(principalYen, annualRatePct, years, monthsElapsed){
   if(r===0) return Math.max(0, principalYen - pmt*k);
   const bal = principalYen*Math.pow(1+r,k) - pmt*(Math.pow(1+r,k)-1)/r;
   return Math.max(0, bal);
+}
+
+// ===== 売却諸費用の自動算出 単位：万円 =====
+function brokerFee(saleMan){ // 宅建業法上限の速算式（税込）。売買価格400万超前提
+  if(saleMan<=0) return 0;
+  return (saleMan*0.03 + 6) * 1.1;
+}
+function sellCost(prefix, saleMan){
+  const auto = B(prefix+'_autofee');
+  const broker = brokerFee(saleMan);
+  const other = saleMan * V(prefix+'_otherrate')/100;
+  const total = auto ? (broker+other) : V(prefix+'_costmanual');
+  $(prefix+'_broker').textContent = fmtMan(broker);
+  $(prefix+'_other').textContent = fmtMan(other);
+  $(prefix+'_feetotal').textContent = fmtMan(total) + '（実質' + (saleMan>0?(total/saleMan*100).toFixed(1):'0') + '%）';
+  $(prefix+'_manualrow').style.display = auto ? 'none' : 'flex';
+  $(prefix+'_autorows').style.display = auto ? 'block' : 'none';
+  return total;
 }
 
 // ===== 譲渡所得税（居住用） 単位：万円 =====
@@ -274,12 +324,16 @@ function loanTaxCredit(principalYen, ratePct, term, limitMan, creditRatePct, cre
 let chartData=null;
 function compute(){
   // --- Stage 1 ---
+  const s1cost = sellCost('s1', V('s1_sale'));
+  const s1building = V('s1_acq') * V('s1_bratio')/100;
   const s1 = capitalGains({
-    sale:V('s1_sale'), sellCost:V('s1_cost'), acqCost:V('s1_acq'),
-    buildingMan:0, deprRate:0, years:V('s1_years'),
+    sale:V('s1_sale'), sellCost:s1cost, acqCost:V('s1_acq'),
+    buildingMan:s1building, deprRate:parseFloat($('s1_struct').value), years:V('s1_years'),
     use3000:B('s1_3000'), use10yr:true
   });
-  const s1net = V('s1_sale') - V('s1_cost') - V('s1_loan') - s1.tax;
+  const s1net = V('s1_sale') - s1cost - V('s1_loan') - s1.tax;
+  $('s1_depr').textContent = fmtMan(s1.depr);
+  $('s1_acqout').textContent = fmtMan(s1.adjustedAcq);
   $('s1_gain').textContent = fmtMan(s1.gain);
   $('s1_taxout').textContent = fmtMan(s1.tax);
   $('s1_taxinfo').textContent = s1.rateLabel;
@@ -294,7 +348,6 @@ function compute(){
   $('s2_loan').textContent = fmtMan(loan2Man);
   $('s2_pmt').textContent = fmtYen(pmt2);
 
-  // 住宅ローン控除
   let hlTotal=0;
   if(B('s2_usehl')){
     hlTotal = loanTaxCredit(loan2Yen, V('s2_rate'), V('s2_term'), V('s2_hllimit'), V('s2_hlrate'), V('s2_hlyears'));
@@ -303,16 +356,17 @@ function compute(){
 
   // --- Stage 2 sell ---
   const hold2 = V('s2_hold');
+  const s2cost = sellCost('s2', V('s2_sale'));
   const bal2Yen = balanceAfter(loan2Yen, V('s2_rate'), V('s2_term'), hold2*12);
   const bal2Man = bal2Yen/10000;
   const buildingMan2 = V('s2_price') * V('s2_bratio')/100;
   const acq2 = V('s2_price') + V('s2_buycost');
   const g2 = capitalGains({
-    sale:V('s2_sale'), sellCost:V('s2_sellcost'), acqCost:acq2,
+    sale:V('s2_sale'), sellCost:s2cost, acqCost:acq2,
     buildingMan:buildingMan2, deprRate:parseFloat($('s2_struct').value), years:hold2,
     use3000:B('s2_3000'), use10yr:B('s2_10yr')
   });
-  const s2net = V('s2_sale') - V('s2_sellcost') - bal2Man - g2.tax;
+  const s2net = V('s2_sale') - s2cost - bal2Man - g2.tax;
   $('s2_bal').textContent = fmtMan(bal2Man);
   $('s2_depr').textContent = fmtMan(g2.depr);
   $('s2_acqout').textContent = fmtMan(g2.adjustedAcq);
@@ -336,7 +390,7 @@ function compute(){
 
   // --- 総合 ---
   const totalTax = s1.tax + g2.tax;
-  const totalInterest = (pmt2*hold2*12 - (loan2Yen - bal2Yen))/10000; // 保有中支払額 − 元金減少分 = 利息
+  const totalInterest = (pmt2*hold2*12 - (loan2Yen - bal2Yen))/10000;
   $('k_finalloan').textContent = fmtMan(loan3Man);
   $('k_tax').textContent = fmtMan(totalTax);
   $('k_loantax').textContent = fmtMan(hlTotal);
@@ -355,15 +409,12 @@ function drawChart(){
     {label:'現自宅 売却', equity:d.s1net, loan:0, tax:d.s1tax},
     {label:'物件B 購入', equity:d.dp2, loan:d.loan2Man, tax:0},
     {label:'物件B 売却', equity:d.s2net, loan:d.bal2Man, tax:d.s2tax},
-    {label:'終の住処 購入', equity:Math.max(0,V('s3_price')-d.s2net===0?0:d.s2net), loan:d.loan3Man, tax:0},
+    {label:'終の住処 購入', equity:Math.min(d.s2net, V('s3_price')), loan:d.loan3Man, tax:0},
   ];
-  // 頭金は購入価格を超えない
-  steps[3].equity = Math.min(d.s2net, V('s3_price'));
   const maxV = Math.max(...steps.map(s=>Math.max(s.equity,0)+Math.max(s.loan,0)))*1.15 || 1;
   const padL=60, padB=46, padT=20, padR=20;
   const plotW=W-padL-padR, plotH=H-padT-padB;
   const bw=plotW/steps.length*0.5;
-  // 軸
   ctx.strokeStyle='#2a3a52'; ctx.lineWidth=1; ctx.fillStyle='#93a4bd'; ctx.font='12px sans-serif';
   for(let i=0;i<=4;i++){
     const y=padT+plotH*(i/4), val=maxV*(1-i/4);
@@ -374,19 +425,15 @@ function drawChart(){
     const cx=padL+plotW*((i+0.5)/steps.length);
     const eH=Math.max(0,s.equity)/maxV*plotH;
     const lH=Math.max(0,s.loan)/maxV*plotH;
-    // loan (下・赤) 積み上げ
     ctx.fillStyle='#f87171';
     ctx.fillRect(cx-bw/2, padT+plotH-lH, bw, lH);
-    // equity (上・青)
     ctx.fillStyle='#3b82f6';
     ctx.fillRect(cx-bw/2, padT+plotH-lH-eH, bw, eH);
-    // tax marker
     if(s.tax>0.5){
       ctx.fillStyle='#fbbf24';
       ctx.beginPath();ctx.arc(cx+bw/2+8, padT+plotH-lH-eH-10, 5, 0, Math.PI*2);ctx.fill();
       ctx.textAlign='left';ctx.fillText('税'+fmtMan(s.tax), cx+bw/2+16, padT+plotH-lH-eH-6);
     }
-    // label
     ctx.fillStyle='#e8eef7';ctx.textAlign='center';ctx.font='12px sans-serif';
     ctx.fillText(s.label, cx, H-26);
     ctx.fillStyle='#93a4bd';ctx.font='11px sans-serif';
@@ -396,20 +443,24 @@ function drawChart(){
 
 // ===== プリセット =====
 const PRESETS = {
-  base:{ // 先生の想定（建物RC・売価維持・14年保有）
-    s1_sale:4000, s1_cost:250, s1_loan:1873, s1_acq:3500, s1_years:15, s1_3000:true,
+  base:{ // 先生の想定（現自宅は木造・15年保有／物件BはRC・14年保有・売価維持）
+    s1_sale:4000, s1_acq:3200, s1_loan:1873,
+    s1_autofee:true, s1_otherrate:1.0, s1_costmanual:250,
+    s1_bratio:40, s1_struct:'0.031', s1_years:15, s1_3000:true,
     s2_price:6500, s2_buycost:250, s2_dpratio:100, s2_rate:1.0, s2_term:35,
     s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
-    s2_hold:14, s2_sale:6500, s2_sellcost:344, s2_bratio:40, s2_struct:'0.015',
-    s2_3000:true, s2_10yr:true,
+    s2_hold:14, s2_sale:6500, s2_autofee:true, s2_otherrate:1.0, s2_costmanual:344,
+    s2_bratio:40, s2_struct:'0.015', s2_3000:true, s2_10yr:true,
     s3_price:4000, s3_buycost:150, s3_rate:1.0, s3_term:10, s3_age:61
   },
-  rc:{ // 建物割合高め・木造で税額が増えるケース
-    s1_sale:4000, s1_cost:250, s1_loan:1873, s1_acq:3500, s1_years:15, s1_3000:true,
+  rc:{ // 建物割合高め・木造・3000控除なしで税額が出るケース
+    s1_sale:4000, s1_acq:3200, s1_loan:1873,
+    s1_autofee:true, s1_otherrate:1.0, s1_costmanual:250,
+    s1_bratio:40, s1_struct:'0.031', s1_years:15, s1_3000:true,
     s2_price:6500, s2_buycost:250, s2_dpratio:100, s2_rate:1.0, s2_term:35,
     s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
-    s2_hold:14, s2_sale:6500, s2_sellcost:344, s2_bratio:55, s2_struct:'0.031',
-    s2_3000:false, s2_10yr:true,
+    s2_hold:14, s2_sale:6500, s2_autofee:true, s2_otherrate:1.0, s2_costmanual:344,
+    s2_bratio:55, s2_struct:'0.031', s2_3000:false, s2_10yr:true,
     s3_price:4000, s3_buycost:150, s3_rate:1.0, s3_term:10, s3_age:61
   }
 };
