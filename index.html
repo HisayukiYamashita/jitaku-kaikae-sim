@@ -148,7 +148,16 @@ button.act:hover{border-color:var(--accent)}
   <p class="desc">ステップ1の手残りを頭金に。残りを住宅ローンで調達し、数年住んで売却する。</p>
 
   <div class="row"><label>購入金額</label><div class="inp"><input type="number" id="s2_price" step="10"><span class="u">万</span></div></div>
-  <div class="row"><label>購入諸費用<span class="hint">登記・仲介・税など。取得費に加算</span></label><div class="inp"><input type="number" id="s2_buycost" step="10"><span class="u">万</span></div></div>
+
+  <!-- 購入諸費用（自動算出） -->
+  <div class="row"><label class="tog"><input type="checkbox" id="s2_buyautofee">購入諸費用を自動計算</label><span class="calc" id="s2_buyfeetotal">–</span></div>
+  <div id="s2_buyautorows">
+    <div class="row subrow"><label class="tog"><input type="checkbox" id="s2_buybroker">仲介手数料を含める（中古物件）<span class="hint">新築・売主直販なら外す</span></label><span class="calc" id="s2_buybrokerfee">–</span></div>
+    <div class="row subrow"><label>その他購入諸費用率<span class="hint">登記・司法書士・不動産取得税・印紙・火災保険・ローン事務/保証料等。中古3〜5%・新築2〜4%目安</span></label><div class="inp"><input type="number" id="s2_buyotherrate" class="narrow" step="0.1"><span class="u">%</span></div></div>
+    <div class="row subrow"><label>その他購入諸費用（自動）</label><span class="calc" id="s2_buyother">–</span></div>
+  </div>
+  <div class="row" id="s2_buymanualrow"><label>購入諸費用（手動）<span class="hint">取得費に加算</span></label><div class="inp"><input type="number" id="s2_buycostmanual" step="10"><span class="u">万</span></div></div>
+
   <div class="row"><label>頭金に回す割合<span class="hint">ステップ1手残りのうち投入する割合</span></label><div class="inp"><input type="number" id="s2_dpratio" class="narrow" step="5" min="0" max="100"><span class="u">%</span></div></div>
   <div class="row"><label>頭金（自動）</label><span class="calc" id="s2_dp">–</span></div>
   <div class="row"><label>借入額（自動）</label><span class="calc" id="s2_loan">–</span></div>
@@ -291,6 +300,20 @@ function sellCost(prefix, saleMan){
   return total;
 }
 
+// ===== 購入諸費用の自動算出 単位：万円 =====
+function buyCost(prefix, priceMan){
+  const auto = B(prefix+'_buyautofee');
+  const broker = B(prefix+'_buybroker') ? brokerFee(priceMan) : 0;
+  const other = priceMan * V(prefix+'_buyotherrate')/100;
+  const total = auto ? (broker+other) : V(prefix+'_buycostmanual');
+  $(prefix+'_buybrokerfee').textContent = fmtMan(broker);
+  $(prefix+'_buyother').textContent = fmtMan(other);
+  $(prefix+'_buyfeetotal').textContent = fmtMan(total) + '（' + (priceMan>0?(total/priceMan*100).toFixed(1):'0') + '%）';
+  $(prefix+'_buymanualrow').style.display = auto ? 'none' : 'flex';
+  $(prefix+'_buyautorows').style.display = auto ? 'block' : 'none';
+  return total;
+}
+
 // ===== 譲渡所得税（居住用） 単位：万円 =====
 function capitalGains({sale, sellCost, acqCost, buildingMan, deprRate, years, use3000, use10yr}){
   // 建物の減価償却（非事業用：取得価額×0.9×償却率×経過年数、建物×0.9が上限）
@@ -340,6 +363,7 @@ function compute(){
   $('s1_net').textContent = fmtMan(s1net);
 
   // --- Stage 2 buy ---
+  const buycost2 = buyCost('s2', V('s2_price'));
   const dp2 = s1net * V('s2_dpratio')/100;
   const loan2Man = Math.max(0, V('s2_price') - dp2);
   const loan2Yen = yen(loan2Man);
@@ -360,7 +384,7 @@ function compute(){
   const bal2Yen = balanceAfter(loan2Yen, V('s2_rate'), V('s2_term'), hold2*12);
   const bal2Man = bal2Yen/10000;
   const buildingMan2 = V('s2_price') * V('s2_bratio')/100;
-  const acq2 = V('s2_price') + V('s2_buycost');
+  const acq2 = V('s2_price') + buycost2;
   const g2 = capitalGains({
     sale:V('s2_sale'), sellCost:s2cost, acqCost:acq2,
     buildingMan:buildingMan2, deprRate:parseFloat($('s2_struct').value), years:hold2,
@@ -447,7 +471,8 @@ const PRESETS = {
     s1_sale:4000, s1_acq:3200, s1_loan:1873,
     s1_autofee:true, s1_otherrate:1.0, s1_costmanual:250,
     s1_bratio:40, s1_struct:'0.031', s1_years:15, s1_3000:true,
-    s2_price:6500, s2_buycost:250, s2_dpratio:100, s2_rate:1.0, s2_term:35,
+    s2_price:6500, s2_buyautofee:true, s2_buybroker:true, s2_buyotherrate:3.0, s2_buycostmanual:250,
+    s2_dpratio:100, s2_rate:1.0, s2_term:35,
     s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
     s2_hold:14, s2_sale:6500, s2_autofee:true, s2_otherrate:1.0, s2_costmanual:344,
     s2_bratio:40, s2_struct:'0.015', s2_3000:true, s2_10yr:true,
@@ -457,7 +482,8 @@ const PRESETS = {
     s1_sale:4000, s1_acq:3200, s1_loan:1873,
     s1_autofee:true, s1_otherrate:1.0, s1_costmanual:250,
     s1_bratio:40, s1_struct:'0.031', s1_years:15, s1_3000:true,
-    s2_price:6500, s2_buycost:250, s2_dpratio:100, s2_rate:1.0, s2_term:35,
+    s2_price:6500, s2_buyautofee:true, s2_buybroker:true, s2_buyotherrate:3.0, s2_buycostmanual:250,
+    s2_dpratio:100, s2_rate:1.0, s2_term:35,
     s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
     s2_hold:14, s2_sale:6500, s2_autofee:true, s2_otherrate:1.0, s2_costmanual:344,
     s2_bratio:55, s2_struct:'0.031', s2_3000:false, s2_10yr:true,
