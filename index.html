@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自宅買い換えスキーム シミュレーター</title>
+<style>
+:root{
+  --bg:#0e1420; --panel:#161f2e; --panel2:#1d2839; --line:#2a3a52;
+  --ink:#e8eef7; --sub:#93a4bd; --accent:#3b82f6; --accent2:#22d3ee;
+  --good:#34d399; --warn:#fbbf24; --bad:#f87171; --gold:#eab308;
+  --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  background:linear-gradient(180deg,#0b1018,#0e1420 40%);color:var(--ink);line-height:1.55;padding-bottom:80px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header{padding:26px 0 8px}
+h1{font-size:24px;margin:0 0 4px;letter-spacing:.02em}
+.tag{color:var(--sub);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card h2{font-size:16px;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+.card h2 .n{background:var(--accent);color:#fff;width:24px;height:24px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:0 0 auto}
+.card .desc{color:var(--sub);font-size:12px;margin:0 0 14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:none}
+.row label{font-size:13.5px;color:var(--ink)}
+.row .hint{display:block;color:var(--sub);font-size:11px;margin-top:1px}
+.inp{display:flex;align-items:center;gap:6px}
+.inp input[type=number]{width:96px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:7px 9px;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.inp input:focus{outline:2px solid var(--accent);border-color:transparent}
+.inp .u{color:var(--sub);font-size:12px;min-width:24px}
+.calc{color:var(--accent2);font-variant-numeric:tabular-nums;font-weight:600}
+.tog{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.tog input{width:16px;height:16px;accent-color:var(--accent)}
+select{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 8px;font-size:13px}
+.res{background:var(--panel2);border-radius:10px;padding:10px 12px;margin-top:12px}
+.res .line{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}
+.res .line b{font-variant-numeric:tabular-nums}
+.res .big{font-size:15px;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+.pos{color:var(--good)} .neg{color:var(--bad)} .tax{color:var(--warn)}
+details{margin-top:8px} summary{cursor:pointer;color:var(--sub);font-size:12.5px}
+.summary-card{background:linear-gradient(135deg,#13233c,#0f1a2c);border:1px solid #29456e}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:6px 0 4px}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi .k{color:var(--sub);font-size:12px;margin-bottom:4px}
+.kpi .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11px;color:var(--sub);margin-top:2px}
+canvas{width:100%;height:auto;display:block;margin-top:8px}
+.note{font-size:12px;color:var(--sub);background:rgba(251,191,36,.07);border-left:3px solid var(--warn);
+  padding:10px 12px;border-radius:6px;margin-top:14px}
+.note b{color:var(--warn)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.foot{color:var(--sub);font-size:11.5px;text-align:center;margin-top:26px}
+.chip{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--sub)}
+.btnbar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+button.act{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;
+  padding:8px 14px;font-size:13px;cursor:pointer}
+button.act:hover{border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🏠 自宅買い換えスキーム シミュレーター</h1>
+  <div class="tag">現自宅売却 → 物件B購入・数年後売却 → 終の住処購入 ── 税金と手残りを一気通貫で試算 <span class="chip">単位：万円</span></div>
+</header>
+
+<div class="btnbar">
+  <button class="act" onclick="loadPreset('base')">初期値（先生の想定）に戻す</button>
+  <button class="act" onclick="loadPreset('rc')">建物RC・売価維持で試算</button>
+  <button class="act" onclick="window.print()">印刷 / PDF保存</button>
+</div>
+
+<!-- ===== SUMMARY ===== -->
+<div class="card summary-card" style="margin-bottom:16px">
+  <h2>📊 総合結果</h2>
+  <div class="kpis">
+    <div class="kpi"><div class="k">最終・終の住処 取得後の残ローン</div><div class="v" id="k_finalloan">–</div><div class="s">物件C購入時の借入</div></div>
+    <div class="kpi"><div class="k">スキーム全体で払う譲渡税</div><div class="v tax" id="k_tax">–</div><div class="s">現自宅＋物件B売却分</div></div>
+    <div class="kpi"><div class="k">住宅ローン控除の総額</div><div class="v pos" id="k_loantax">–</div><div class="s">物件Bで受ける減税</div></div>
+    <div class="kpi"><div class="k">物件B保有中の総支払利息</div><div class="v" id="k_interest">–</div><div class="s">売却時までの利息累計</div></div>
+  </div>
+  <canvas id="chart" width="1120" height="300"></canvas>
+  <div class="legend">
+    <span><i style="background:#3b82f6"></i>自己資金（頭金として繰越す手残り）</span>
+    <span><i style="background:#f87171"></i>住宅ローン残高</span>
+    <span><i style="background:#fbbf24"></i>譲渡税の発生</span>
+  </div>
+</div>
+
+<div class="grid">
+
+<!-- ===== STAGE 1 ===== -->
+<div class="card">
+  <h2><span class="n">1</span>現在の自宅を売却</h2>
+  <p class="desc">売却益は居住用3,000万円控除で基本的に非課税。手残りが物件Bの頭金になる。</p>
+
+  <div class="row"><label>売却金額</label><div class="inp"><input type="number" id="s1_sale" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>売却手数料・諸費用<span class="hint">仲介手数料＋予備費など</span></label><div class="inp"><input type="number" id="s1_cost" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>住宅ローン残高（一括返済）</label><div class="inp"><input type="number" id="s1_loan" step="10"><span class="u">万</span></div></div>
+
+  <details>
+    <summary>譲渡税の前提（取得費・所有期間）</summary>
+    <div class="row"><label>取得費（当初購入価額＋諸費用）<span class="hint">不明なら売却額×5%が概算取得費</span></label><div class="inp"><input type="number" id="s1_acq" step="10"><span class="u">万</span></div></div>
+    <div class="row"><label>所有期間</label><div class="inp"><input type="number" id="s1_years" step="1"><span class="u">年</span></div></div>
+    <div class="row"><label class="tog"><input type="checkbox" id="s1_3000">3,000万円特別控除を適用</label><span class="calc" id="s1_taxinfo"></span></div>
+  </details>
+
+  <div class="res">
+    <div class="line"><span>譲渡益（取得費・費用控除後）</span><b id="s1_gain">–</b></div>
+    <div class="line"><span>譲渡税</span><b class="tax" id="s1_taxout">–</b></div>
+    <div class="line big"><span>ステップ1 手残り <span class="hint" style="display:inline">→ 物件B頭金へ</span></span><b class="pos" id="s1_net">–</b></div>
+  </div>
+</div>
+
+<!-- ===== STAGE 2 buy ===== -->
+<div class="card">
+  <h2><span class="n">2</span>物件B（4LDK）を購入</h2>
+  <p class="desc">ステップ1の手残りを頭金に。残りを住宅ローンで調達し、数年住んで売却する。</p>
+
+  <div class="row"><label>購入金額</label><div class="inp"><input type="number" id="s2_price" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>購入諸費用<span class="hint">登記・仲介・税など。取得費に加算</span></label><div class="inp"><input type="number" id="s2_buycost" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>頭金に回す割合<span class="hint">ステップ1手残りのうち投入する割合</span></label><div class="inp"><input type="number" id="s2_dpratio" step="5" min="0" max="100"><span class="u">%</span></div></div>
+  <div class="row"><label>頭金（自動）</label><span class="calc" id="s2_dp">–</span></div>
+  <div class="row"><label>借入額（自動）</label><span class="calc" id="s2_loan">–</span></div>
+
+  <div class="row"><label>ローン金利（年）</label><div class="inp"><input type="number" id="s2_rate" step="0.01"><span class="u">%</span></div></div>
+  <div class="row"><label>ローン返済期間</label><div class="inp"><input type="number" id="s2_term" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>毎月返済額（自動）</label><span class="calc" id="s2_pmt">–</span></div>
+
+  <details>
+    <summary>住宅ローン控除の前提</summary>
+    <div class="row"><label class="tog"><input type="checkbox" id="s2_usehl">住宅ローン控除を適用</label></div>
+    <div class="row"><label>借入限度額</label><div class="inp"><input type="number" id="s2_hllimit" step="100"><span class="u">万</span></div></div>
+    <div class="row"><label>控除率</label><div class="inp"><input type="number" id="s2_hlrate" step="0.1"><span class="u">%</span></div></div>
+    <div class="row"><label>控除期間</label><div class="inp"><input type="number" id="s2_hlyears" step="1"><span class="u">年</span></div></div>
+    <div class="row"><label>控除総額（概算）</label><span class="calc pos" id="s2_hltotal">–</span></div>
+  </details>
+</div>
+
+<!-- ===== STAGE 2 sell ===== -->
+<div class="card">
+  <h2><span class="n">2'</span>物件B を売却（数年後）</h2>
+  <p class="desc">「買った額で売れても」建物の減価償却で取得費が下がり、少し譲渡益が出る。ここが課税の肝。</p>
+
+  <div class="row"><label>保有年数（購入→売却）</label><div class="inp"><input type="number" id="s2_hold" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>売却金額</label><div class="inp"><input type="number" id="s2_sale" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>売却手数料・諸費用</label><div class="inp"><input type="number" id="s2_sellcost" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>売却時ローン残高（自動）</label><span class="calc" id="s2_bal">–</span></div>
+
+  <details open>
+    <summary>譲渡税の前提（減価償却・特例）</summary>
+    <div class="row"><label>建物割合<span class="hint">購入価額のうち建物分。土地は非償却</span></label><div class="inp"><input type="number" id="s2_bratio" step="5" min="0" max="100"><span class="u">%</span></div></div>
+    <div class="row"><label>建物構造（償却率）</label>
+      <select id="s2_struct">
+        <option value="0.015">RC・SRC（マンション 0.015）</option>
+        <option value="0.022">重量鉄骨（0.022）</option>
+        <option value="0.031">木造（0.031）</option>
+        <option value="0.036">軽量鉄骨（0.036）</option>
+      </select>
+    </div>
+    <div class="row"><label>減価償却累計（自動）</label><span class="calc" id="s2_depr">–</span></div>
+    <div class="row"><label>取得費（自動）</label><span class="calc" id="s2_acqout">–</span></div>
+    <div class="row"><label class="tog"><input type="checkbox" id="s2_3000">3,000万円特別控除を適用</label></div>
+    <div class="row"><label class="tog"><input type="checkbox" id="s2_10yr">10年超所有の軽減税率（14.21%）</label></div>
+  </details>
+
+  <div class="res">
+    <div class="line"><span>譲渡益</span><b id="s2_gain">–</b></div>
+    <div class="line"><span>課税譲渡所得（控除後）</span><b id="s2_taxable">–</b></div>
+    <div class="line"><span>譲渡税</span><b class="tax" id="s2_taxout">–</b></div>
+    <div class="line big"><span>ステップ2 手残り <span class="hint" style="display:inline">→ 物件C頭金へ</span></span><b class="pos" id="s2_net">–</b></div>
+  </div>
+</div>
+
+<!-- ===== STAGE 3 ===== -->
+<div class="card">
+  <h2><span class="n">3</span>終の住処（2LDK）を購入</h2>
+  <p class="desc">物件B売却の手残りを頭金に。残りのローンを完済できる期間かを確認する。</p>
+
+  <div class="row"><label>購入金額</label><div class="inp"><input type="number" id="s3_price" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>購入諸費用</label><div class="inp"><input type="number" id="s3_buycost" step="10"><span class="u">万</span></div></div>
+  <div class="row"><label>頭金（ステップ2手残り・自動）</label><span class="calc" id="s3_dp">–</span></div>
+  <div class="row"><label>借入額（自動）</label><span class="calc" id="s3_loan">–</span></div>
+
+  <div class="row"><label>ローン金利（年）</label><div class="inp"><input type="number" id="s3_rate" step="0.01"><span class="u">%</span></div></div>
+  <div class="row"><label>ローン返済期間</label><div class="inp"><input type="number" id="s3_term" step="1"><span class="u">年</span></div></div>
+  <div class="row"><label>毎月返済額（自動）</label><span class="calc" id="s3_pmt">–</span></div>
+  <div class="row"><label>現在年齢 → 完済時年齢</label><div class="inp"><input type="number" id="s3_age" step="1"><span class="u">歳</span></div></div>
+  <div class="row"><label>完済年齢（自動）</label><span class="calc" id="s3_ageout">–</span></div>
+
+  <div class="res">
+    <div class="line big"><span>終の住処・購入後の借入残</span><b id="s3_loanout">–</b></div>
+    <div class="line"><span>総返済額（元利合計）</span><b id="s3_total">–</b></div>
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+<div class="note">
+  <b>⚠ 税務判断のポイント（先生の最終確認事項）</b><br>
+  ① <b>3,000万円特別控除</b>は「居住用財産」であること・買主が親族等でないこと・前年前々年に同特例を使っていないことが要件。物件Bの購入年前後に住宅ローン控除を使うと<b>併用不可</b>の年がある点に注意。<br>
+  ② <b>10年超所有の軽減税率</b>は所有期間が売却年1/1時点で10年超のとき。物件Bの保有年数の置き方で適用可否が変わる。<br>
+  ③ <b>取得費の減価償却</b>は建物割合・構造で大きく動く。建物割合は契約書・固定資産税評価から実額を。<br>
+  ④ <b>住宅ローン控除</b>は概算（各年末残高×控除率、限度額頭打ち）。所得税・住民税の控除上限は未考慮なので、実額は所得次第で下振れあり。<br>
+  数値はすべて仮置き。最終的な適用可否・税額は山下先生の判断で確定。
+</div>
+
+<div class="foot">山下税理士事務所 / 自宅買い換えシミュレーター ── 試算ツール（法令・税率は 2026年時点の一般的な整理）</div>
+</div>
+
+<script>
+// ===== ユーティリティ =====
+const $ = id => document.getElementById(id);
+const V = id => parseFloat($(id).value) || 0;      // 数値入力
+const B = id => $(id).checked;                      // チェックボックス
+const yen = man => Math.round(man*10000);
+const fmtMan = m => (m==null||isNaN(m))?'–':(m>=0?'':'−')+Math.abs(m).toLocaleString('ja-JP',{maximumFractionDigits:0})+'万';
+const fmtYen = y => (y==null||isNaN(y))?'–':Math.round(y).toLocaleString('ja-JP')+'円';
+
+// ===== ローン計算（元利均等） 単位：円 =====
+function monthlyPayment(principalYen, annualRatePct, years){
+  const r = annualRatePct/100/12, n = years*12;
+  if(n<=0) return 0;
+  if(r===0) return principalYen/n;
+  return principalYen * r / (1 - Math.pow(1+r, -n));
+}
+function balanceAfter(principalYen, annualRatePct, years, monthsElapsed){
+  const r = annualRatePct/100/12, n = years*12;
+  const pmt = monthlyPayment(principalYen, annualRatePct, years);
+  const k = Math.min(monthsElapsed, n);
+  if(r===0) return Math.max(0, principalYen - pmt*k);
+  const bal = principalYen*Math.pow(1+r,k) - pmt*(Math.pow(1+r,k)-1)/r;
+  return Math.max(0, bal);
+}
+
+// ===== 譲渡所得税（居住用） 単位：万円 =====
+function capitalGains({sale, sellCost, acqCost, buildingMan, deprRate, years, use3000, use10yr}){
+  // 建物の減価償却（非事業用：取得価額×0.9×償却率×経過年数、建物×0.9が上限）
+  const depr = Math.min(buildingMan*0.9*deprRate*years, buildingMan*0.9);
+  const adjustedAcq = Math.max(0, acqCost - depr);      // 償却後の取得費
+  const gain = sale - sellCost - adjustedAcq;           // 譲渡益
+  const deduction = use3000 ? Math.min(Math.max(0,gain), 3000) : 0;
+  const taxable = Math.max(0, gain - deduction);
+  let tax, rateLabel;
+  const longTerm = years > 5;
+  if(!longTerm){ tax = taxable*0.3963; rateLabel='短期39.63%'; }
+  else if(use10yr && years>10){
+    const low = Math.min(taxable,6000), high = Math.max(0,taxable-6000);
+    tax = low*0.1421 + high*0.20315; rateLabel='軽減14.21%';
+  } else { tax = taxable*0.20315; rateLabel='長期20.315%'; }
+  return {gain, taxable, tax, depr, adjustedAcq, deduction, rateLabel};
+}
+
+// ===== 住宅ローン控除（概算） 単位：万円 =====
+function loanTaxCredit(principalYen, ratePct, term, limitMan, creditRatePct, creditYears){
+  let total=0;
+  for(let y=1;y<=creditYears;y++){
+    const balYen = balanceAfter(principalYen, ratePct, term, y*12);
+    const baseMan = Math.min(balYen/10000, limitMan);
+    total += baseMan * creditRatePct/100;
+  }
+  return total;
+}
+
+// ===== メイン計算 =====
+let chartData=null;
+function compute(){
+  // --- Stage 1 ---
+  const s1 = capitalGains({
+    sale:V('s1_sale'), sellCost:V('s1_cost'), acqCost:V('s1_acq'),
+    buildingMan:0, deprRate:0, years:V('s1_years'),
+    use3000:B('s1_3000'), use10yr:true
+  });
+  const s1net = V('s1_sale') - V('s1_cost') - V('s1_loan') - s1.tax;
+  $('s1_gain').textContent = fmtMan(s1.gain);
+  $('s1_taxout').textContent = fmtMan(s1.tax);
+  $('s1_taxinfo').textContent = s1.rateLabel;
+  $('s1_net').textContent = fmtMan(s1net);
+
+  // --- Stage 2 buy ---
+  const dp2 = s1net * V('s2_dpratio')/100;
+  const loan2Man = Math.max(0, V('s2_price') - dp2);
+  const loan2Yen = yen(loan2Man);
+  const pmt2 = monthlyPayment(loan2Yen, V('s2_rate'), V('s2_term'));
+  $('s2_dp').textContent = fmtMan(dp2);
+  $('s2_loan').textContent = fmtMan(loan2Man);
+  $('s2_pmt').textContent = fmtYen(pmt2);
+
+  // 住宅ローン控除
+  let hlTotal=0;
+  if(B('s2_usehl')){
+    hlTotal = loanTaxCredit(loan2Yen, V('s2_rate'), V('s2_term'), V('s2_hllimit'), V('s2_hlrate'), V('s2_hlyears'));
+  }
+  $('s2_hltotal').textContent = fmtMan(hlTotal);
+
+  // --- Stage 2 sell ---
+  const hold2 = V('s2_hold');
+  const bal2Yen = balanceAfter(loan2Yen, V('s2_rate'), V('s2_term'), hold2*12);
+  const bal2Man = bal2Yen/10000;
+  const buildingMan2 = V('s2_price') * V('s2_bratio')/100;
+  const acq2 = V('s2_price') + V('s2_buycost');
+  const g2 = capitalGains({
+    sale:V('s2_sale'), sellCost:V('s2_sellcost'), acqCost:acq2,
+    buildingMan:buildingMan2, deprRate:parseFloat($('s2_struct').value), years:hold2,
+    use3000:B('s2_3000'), use10yr:B('s2_10yr')
+  });
+  const s2net = V('s2_sale') - V('s2_sellcost') - bal2Man - g2.tax;
+  $('s2_bal').textContent = fmtMan(bal2Man);
+  $('s2_depr').textContent = fmtMan(g2.depr);
+  $('s2_acqout').textContent = fmtMan(g2.adjustedAcq);
+  $('s2_gain').textContent = fmtMan(g2.gain);
+  $('s2_taxable').textContent = fmtMan(g2.taxable) + '（'+g2.rateLabel+'）';
+  $('s2_taxout').textContent = fmtMan(g2.tax);
+  $('s2_net').textContent = fmtMan(s2net);
+
+  // --- Stage 3 ---
+  const dp3 = s2net;
+  const loan3Man = Math.max(0, V('s3_price') - dp3);
+  const loan3Yen = yen(loan3Man);
+  const pmt3 = monthlyPayment(loan3Yen, V('s3_rate'), V('s3_term'));
+  const total3 = pmt3 * V('s3_term')*12;
+  $('s3_dp').textContent = fmtMan(dp3);
+  $('s3_loan').textContent = fmtMan(loan3Man);
+  $('s3_pmt').textContent = fmtYen(pmt3);
+  $('s3_loanout').textContent = fmtMan(loan3Man);
+  $('s3_total').textContent = fmtYen(total3);
+  $('s3_ageout').textContent = (V('s3_age')+V('s3_term')) + '歳';
+
+  // --- 総合 ---
+  const totalTax = s1.tax + g2.tax;
+  const totalInterest = (pmt2*hold2*12 - (loan2Yen - bal2Yen))/10000; // 保有中支払額 − 元金減少分 = 利息
+  $('k_finalloan').textContent = fmtMan(loan3Man);
+  $('k_tax').textContent = fmtMan(totalTax);
+  $('k_loantax').textContent = fmtMan(hlTotal);
+  $('k_interest').textContent = fmtMan(totalInterest);
+
+  chartData = {s1net, dp2, loan2Man, bal2Man, s2net, loan3Man, s1tax:s1.tax, s2tax:g2.tax};
+  drawChart();
+}
+
+// ===== 簡易チャート（キャッシュチェーン） =====
+function drawChart(){
+  const c=$('chart'), ctx=c.getContext('2d');
+  const W=c.width, H=c.height; ctx.clearRect(0,0,W,H);
+  const d=chartData; if(!d) return;
+  const steps=[
+    {label:'現自宅 売却', equity:d.s1net, loan:0, tax:d.s1tax},
+    {label:'物件B 購入', equity:d.dp2, loan:d.loan2Man, tax:0},
+    {label:'物件B 売却', equity:d.s2net, loan:d.bal2Man, tax:d.s2tax},
+    {label:'終の住処 購入', equity:Math.max(0,V('s3_price')-d.s2net===0?0:d.s2net), loan:d.loan3Man, tax:0},
+  ];
+  // 頭金は購入価格を超えない
+  steps[3].equity = Math.min(d.s2net, V('s3_price'));
+  const maxV = Math.max(...steps.map(s=>Math.max(s.equity,0)+Math.max(s.loan,0)))*1.15 || 1;
+  const padL=60, padB=46, padT=20, padR=20;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const bw=plotW/steps.length*0.5;
+  // 軸
+  ctx.strokeStyle='#2a3a52'; ctx.lineWidth=1; ctx.fillStyle='#93a4bd'; ctx.font='12px sans-serif';
+  for(let i=0;i<=4;i++){
+    const y=padT+plotH*(i/4), val=maxV*(1-i/4);
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.textAlign='right';ctx.fillText(Math.round(val).toLocaleString(),padL-8,y+4);
+  }
+  steps.forEach((s,i)=>{
+    const cx=padL+plotW*((i+0.5)/steps.length);
+    const eH=Math.max(0,s.equity)/maxV*plotH;
+    const lH=Math.max(0,s.loan)/maxV*plotH;
+    // loan (下・赤) 積み上げ
+    ctx.fillStyle='#f87171';
+    ctx.fillRect(cx-bw/2, padT+plotH-lH, bw, lH);
+    // equity (上・青)
+    ctx.fillStyle='#3b82f6';
+    ctx.fillRect(cx-bw/2, padT+plotH-lH-eH, bw, eH);
+    // tax marker
+    if(s.tax>0.5){
+      ctx.fillStyle='#fbbf24';
+      ctx.beginPath();ctx.arc(cx+bw/2+8, padT+plotH-lH-eH-10, 5, 0, Math.PI*2);ctx.fill();
+      ctx.textAlign='left';ctx.fillText('税'+fmtMan(s.tax), cx+bw/2+16, padT+plotH-lH-eH-6);
+    }
+    // label
+    ctx.fillStyle='#e8eef7';ctx.textAlign='center';ctx.font='12px sans-serif';
+    ctx.fillText(s.label, cx, H-26);
+    ctx.fillStyle='#93a4bd';ctx.font='11px sans-serif';
+    ctx.fillText('自己'+fmtMan(s.equity), cx, H-12);
+  });
+}
+
+// ===== プリセット =====
+const PRESETS = {
+  base:{ // 先生の想定（建物RC・売価維持・14年保有）
+    s1_sale:4000, s1_cost:250, s1_loan:1873, s1_acq:3500, s1_years:15, s1_3000:true,
+    s2_price:6500, s2_buycost:250, s2_dpratio:100, s2_rate:1.0, s2_term:35,
+    s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
+    s2_hold:14, s2_sale:6500, s2_sellcost:344, s2_bratio:40, s2_struct:'0.015',
+    s2_3000:true, s2_10yr:true,
+    s3_price:4000, s3_buycost:150, s3_rate:1.0, s3_term:10, s3_age:61
+  },
+  rc:{ // 建物割合高め・木造で税額が増えるケース
+    s1_sale:4000, s1_cost:250, s1_loan:1873, s1_acq:3500, s1_years:15, s1_3000:true,
+    s2_price:6500, s2_buycost:250, s2_dpratio:100, s2_rate:1.0, s2_term:35,
+    s2_usehl:true, s2_hllimit:3000, s2_hlrate:0.7, s2_hlyears:10,
+    s2_hold:14, s2_sale:6500, s2_sellcost:344, s2_bratio:55, s2_struct:'0.031',
+    s2_3000:false, s2_10yr:true,
+    s3_price:4000, s3_buycost:150, s3_rate:1.0, s3_term:10, s3_age:61
+  }
+};
+function loadPreset(name){
+  const p=PRESETS[name];
+  for(const k in p){
+    const el=$(k); if(!el) continue;
+    if(el.type==='checkbox') el.checked=p[k]; else el.value=p[k];
+  }
+  compute();
+}
+
+// ===== バインド =====
+document.querySelectorAll('input,select').forEach(el=>{
+  el.addEventListener('input', compute);
+  el.addEventListener('change', compute);
+});
+loadPreset('base');
+</script>
+</body>
+</html>
