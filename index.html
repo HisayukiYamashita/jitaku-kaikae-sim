@@ -5,100 +5,136 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>自宅買い換えスキーム シミュレーター</title>
+<meta name="description" content="現自宅の売却→物件Bの購入・売却→終の住処の購入まで、譲渡税・住宅ローン・手残りを一気通貫で試算するシミュレーター。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
+/* デザイン：白×オレンジの経済メディア風（2026-10-15 共通デザイン）。印刷を考えて塗りは最小限、罫線で区切る */
 :root{
-  --bg:#0e1420; --panel:#161f2e; --panel2:#1d2839; --line:#2a3a52;
-  --ink:#e8eef7; --sub:#93a4bd; --accent:#3b82f6; --accent2:#22d3ee;
-  --good:#34d399; --warn:#fbbf24; --bad:#f87171; --gold:#eab308;
-  --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.35);
+  --ink:#111; --sub:#5f6368; --line:#e3e3e3; --accent:#ffb547;
+  --pos:#157f3b; --neg:#c2410c; --bg:#fff;
 }
-*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-  background:linear-gradient(180deg,#0b1018,#0e1420 40%);color:var(--ink);line-height:1.55;padding-bottom:80px}
-.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
-header{padding:26px 0 8px}
-h1{font-size:24px;margin:0 0 4px;letter-spacing:.02em}
-.tag{color:var(--sub);font-size:13px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-.card h2{font-size:16px;margin:0 0 2px;display:flex;align-items:center;gap:8px}
-.card h2 .n{background:var(--accent);color:#fff;width:24px;height:24px;border-radius:50%;
-  display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:0 0 auto}
-.card .desc{color:var(--sub);font-size:12px;margin:0 0 14px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
-.row:last-child{border-bottom:none}
-.row label{font-size:13.5px;color:var(--ink)}
-.row .hint{display:block;color:var(--sub);font-size:11px;margin-top:1px}
-.inp{display:flex;align-items:center;gap:6px}
-.inp input[type=number]{width:96px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
-  border-radius:8px;padding:7px 9px;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
-.inp input.narrow{width:72px}
-.inp input:focus{outline:2px solid var(--accent);border-color:transparent}
-.inp .u{color:var(--sub);font-size:12px;min-width:24px}
-.calc{color:var(--accent2);font-variant-numeric:tabular-nums;font-weight:600}
-.subrow{padding:4px 0 4px 12px;border-bottom:1px dotted var(--line)}
-.subrow label{font-size:12.5px;color:var(--sub)}
-.tog{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
-.tog input{width:16px;height:16px;accent-color:var(--accent)}
-select{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 8px;font-size:13px}
-.res{background:var(--panel2);border-radius:10px;padding:10px 12px;margin-top:12px}
-.res .line{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}
-.res .line b{font-variant-numeric:tabular-nums}
-.res .big{font-size:15px;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
-.pos{color:var(--good)} .neg{color:var(--bad)} .tax{color:var(--warn)}
-details{margin-top:8px} summary{cursor:pointer;color:var(--sub);font-size:12.5px}
-.summary-card{background:linear-gradient(135deg,#13233c,#0f1a2c);border:1px solid #29456e}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:6px 0 4px}
-@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
-.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
-.kpi .k{color:var(--sub);font-size:12px;margin-bottom:4px}
-.kpi .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
-.kpi .s{font-size:11px;color:var(--sub);margin-top:2px}
-canvas{width:100%;height:auto;display:block;margin-top:8px}
-.note{font-size:12px;color:var(--sub);background:rgba(251,191,36,.07);border-left:3px solid var(--warn);
-  padding:10px 12px;border-radius:6px;margin-top:14px}
-.note b{color:var(--warn)}
-.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:6px}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.foot{color:var(--sub);font-size:11.5px;text-align:center;margin-top:26px}
-.when{font-size:11px;color:var(--accent2);font-weight:600;background:var(--panel2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;margin-left:auto;white-space:nowrap}
-.tl{display:flex;align-items:flex-start;margin:16px 0 6px;overflow-x:auto;padding-bottom:4px}
-.tl-node{flex:1 0 130px;text-align:center;position:relative}
-.tl-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);border:3px solid var(--panel);box-shadow:0 0 0 2px var(--accent);margin:2px auto 8px}
-.tl-node.end .tl-dot{background:var(--good);box-shadow:0 0 0 2px var(--good)}
-.tl-year{font-size:16px;font-weight:700}
-.tl-age{font-size:12px;color:var(--accent2);font-weight:600;margin-top:1px}
-.tl-ev{font-size:11.5px;color:var(--sub);margin-top:4px;line-height:1.35}
-.tl-line{flex:0 0 24px;height:2px;background:var(--line);margin-top:9px}
-.chip{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--sub)}
-.btnbar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
-button.act{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;
-  padding:8px 14px;font-size:13px;cursor:pointer}
-button.act:hover{border-color:var(--accent)}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:"Inter","Noto Sans JP","Hiragino Sans",sans-serif; color:var(--ink); background:var(--bg); line-height:1.7; -webkit-font-smoothing:antialiased;}
+b, .calc, .big, input{font-variant-numeric:tabular-nums;}
+header{border-top:6px solid var(--ink); padding:28px 20px 22px; border-bottom:1px solid var(--ink);}
+header .wrap{max-width:1080px; margin:0 auto; padding:0;}
+.headrow{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+.tag{display:inline-block; background:var(--accent); color:var(--ink); font-size:.75rem; font-weight:700; padding:2px 10px; letter-spacing:.06em;}
+header h1{font-size:clamp(1.6rem,4vw,2.4rem); font-weight:900; letter-spacing:-.01em; line-height:1.25; margin-top:10px;}
+header .sub{font-size:.95rem; font-weight:700; margin-top:6px;}
+header p.lead{font-size:.82rem; color:var(--sub); margin-top:6px;}
+#printBtn{background:#fff; color:var(--ink); border:1.5px solid var(--ink); border-radius:4px; font-family:inherit; font-size:.92rem; font-weight:700; padding:7px 14px; cursor:pointer; flex-shrink:0;}
+#printBtn:hover{background:var(--accent);}
+main{max-width:1080px; margin:0 auto; padding:24px 20px 60px;}
+.btnbar{display:flex; gap:10px; flex-wrap:wrap; margin:0 0 26px;}
+button.act{background:var(--ink); color:#fff; border:none; border-radius:4px; padding:10px 16px; font-size:.88rem; font-weight:700; font-family:inherit; cursor:pointer;}
+button.act:hover{background:#333;}
+.unit{font-size:.75rem; color:var(--sub); align-self:center;}
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:0 40px;}
+@media(max-width:860px){.grid{grid-template-columns:1fr;}}
+.card{padding:0 0 22px; margin-bottom:26px; border-bottom:1px solid var(--line); min-width:0;}
+.card h2, .conclusion h2{font-size:.78rem; font-weight:700; letter-spacing:.12em; color:var(--ink); border-top:2px solid var(--ink); padding-top:8px; margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.card h2 .n{display:inline-block; background:var(--accent); color:var(--ink); font-size:.72rem; font-weight:700; padding:0 7px; letter-spacing:0;}
+.card .desc{color:var(--sub); font-size:.8rem; margin:0 0 10px;}
+.row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--line);}
+.row:last-child{border-bottom:none;}
+.row label{font-size:.85rem; color:var(--ink); min-width:0;}
+.row .hint{display:block; color:var(--sub); font-size:.7rem; margin-top:1px;}
+.inp{display:flex; align-items:center; gap:6px; flex-shrink:0;}
+.inp input[type=number]{width:96px; border:none; border-bottom:1.5px solid #bdbdbd; border-radius:0; background:transparent; color:var(--ink); padding:5px 2px; font-family:inherit; font-size:1rem; font-weight:600; text-align:right;}
+.inp input.narrow{width:72px;}
+.inp input:focus{outline:none; border-bottom-color:var(--ink);}
+.inp .u{color:var(--sub); font-size:.75rem; min-width:24px;}
+.calc{color:var(--ink); font-weight:700; text-align:right;}
+.subrow{padding:5px 0 5px 12px;}
+.subrow label{font-size:.8rem; color:var(--sub);}
+.tog{display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none;}
+.tog input{width:16px; height:16px; accent-color:var(--ink); flex-shrink:0;}
+select{border:none; border-bottom:1.5px solid #bdbdbd; border-radius:0; background:transparent; color:var(--ink); padding:5px 2px; font-family:inherit; font-size:.85rem; font-weight:600; max-width:60%;}
+select:focus{outline:none; border-bottom-color:var(--ink);}
+.res{border-top:1.5px solid var(--ink); margin-top:12px; padding-top:6px;}
+.res .line{display:flex; justify-content:space-between; gap:10px; padding:4px 0; font-size:.85rem;}
+.res .big{font-size:1rem; font-weight:700; border-top:1px solid var(--line); margin-top:6px; padding-top:8px;}
+.res .big b{font-size:1.2rem; background:linear-gradient(transparent 62%, var(--accent) 62%);}
+.pos{color:var(--pos);} .neg{color:var(--neg);} .tax{color:var(--neg);}
+details{margin-top:8px;} summary{cursor:pointer; font-weight:700; font-size:.8rem; padding:6px 0;}
+.when{font-size:.72rem; color:var(--sub); font-weight:600; margin-left:auto; white-space:nowrap; letter-spacing:0;}
+/* 結論 */
+.conclusion{margin-bottom:34px;}
+.conclusion .label{font-size:.85rem; color:var(--sub);}
+.conclusion .big{font-size:clamp(2.4rem,6vw,3.6rem); font-weight:800; letter-spacing:-.03em; line-height:1.15; margin:2px 0 6px;}
+.conclusion .big .mark{background:linear-gradient(transparent 62%, var(--accent) 62%);}
+.conclusion .big small{font-size:.38em; font-weight:700; margin-left:4px;}
+.stats{display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--line); margin-top:14px;}
+.stats > div{padding:12px 12px 4px 0;}
+.stats > div + div{border-left:1px solid var(--line); padding-left:14px;}
+.stats .k{display:block; font-size:.74rem; color:var(--sub);}
+.stats .v{display:block; font-size:1.25rem; font-weight:700; letter-spacing:-.01em;}
+.stats .s{display:block; font-size:.7rem; color:var(--sub);}
+@media(max-width:860px){.stats{grid-template-columns:repeat(2,1fr);} .stats > div:nth-child(3){border-left:none; padding-left:0;} .stats > div:nth-child(n+3){border-top:1px solid var(--line);}}
+@media(max-width:560px){.stats{grid-template-columns:1fr;} .stats > div + div{border-left:none; border-top:1px solid var(--line); padding-left:0;}}
+.conclusion .fine{font-size:.74rem; color:var(--sub); margin-top:8px;}
+/* タイムライン */
+.tl{display:flex; align-items:flex-start; margin:22px 0 6px; overflow-x:auto; padding-bottom:4px;}
+.tl-node{flex:1 0 110px; text-align:center;}
+.tl-dot{width:12px; height:12px; border-radius:50%; background:#fff; border:2px solid var(--ink); margin:3px auto 8px;}
+.tl-node.end .tl-dot{background:var(--accent);}
+.tl-year{font-size:1rem; font-weight:700;}
+.tl-age{font-size:.75rem; color:var(--sub); font-weight:600;}
+.tl-ev{font-size:.72rem; color:var(--sub); margin-top:4px; line-height:1.4;}
+.tl-line{flex:0 0 24px; height:1px; background:var(--ink); margin-top:9px;}
+canvas{width:100%; height:auto; display:block; margin-top:10px;}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:.75rem; color:var(--sub); margin-top:6px;}
+.legend i{display:inline-block; width:10px; height:10px; margin-right:5px; vertical-align:-1px; border:1px solid var(--ink);}
+.lg-eq{background:var(--accent);} .lg-loan{background:#9a9a9a;} .lg-tax{background:var(--ink); border-radius:50%;}
+/* 注意書き */
+.note{border:1px solid var(--ink); padding:16px 18px; font-size:.8rem; line-height:1.8; margin-top:10px;}
+.note h3{font-size:.85rem; margin-bottom:6px;}
+footer{max-width:1080px; margin:0 auto; border-top:1px solid var(--ink); font-size:.75rem; color:var(--sub); padding:14px 20px 40px;}
+@page{size:A4 portrait; margin:12mm;}
+@media print{
+  *{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  header{padding:0 0 10px; border-top-width:4px;}
+  header h1{font-size:1.5rem;}
+  main{padding:12px 0;}
+  #printBtn, .btnbar{display:none !important;}
+  .card, .conclusion, .note{break-inside:avoid; margin-bottom:12px;}
+  .conclusion .big{font-size:2.2rem;}
+  footer{padding:8px 0;}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
 <header>
-  <h1>🏠 自宅買い換えスキーム シミュレーター</h1>
-  <div class="tag">現自宅売却 → 物件B購入・数年後売却 → 終の住処購入 ── 税金と手残りを一気通貫で試算 <span class="chip">単位：万円</span></div>
+  <div class="wrap">
+    <div class="headrow">
+      <span class="tag">自宅買い換え</span>
+      <button id="printBtn" onclick="window.print()">印刷・PDF保存</button>
+    </div>
+    <h1>家を買い換えていくと、<br>最後に手元にはいくら残る？</h1>
+    <p class="sub">自宅買い換えスキーム シミュレーター</p>
+    <p class="lead">現自宅の売却 → 物件Bの購入・数年後の売却 → 終の住処の購入まで、譲渡税・住宅ローン・手残りを一気通貫で試算します</p>
+  </div>
 </header>
+<main>
 
 <div class="btnbar">
   <button class="act" onclick="loadPreset('base')">初期値（先生の想定）に戻す</button>
   <button class="act" onclick="loadPreset('rc')">建物RC・売価維持で試算</button>
-  <button class="act" onclick="window.print()">印刷 / PDF保存</button>
+  <span class="unit">金額の単位：万円</span>
 </div>
 
 <!-- ===== SUMMARY ===== -->
-<div class="card summary-card" style="margin-bottom:16px">
-  <h2>📊 総合結果</h2>
-  <div class="kpis">
-    <div class="kpi"><div class="k">最終・終の住処 取得後の残ローン</div><div class="v" id="k_finalloan">–</div><div class="s">物件C購入時の借入</div></div>
-    <div class="kpi"><div class="k">スキーム全体で払う譲渡税</div><div class="v tax" id="k_tax">–</div><div class="s">現自宅＋物件B売却分</div></div>
-    <div class="kpi"><div class="k">住宅ローン控除の総額</div><div class="v pos" id="k_loantax">–</div><div class="s">物件Bで受ける減税</div></div>
-    <div class="kpi"><div class="k">物件B保有中の総支払利息</div><div class="v" id="k_interest">–</div><div class="s">売却時までの利息累計</div></div>
+<div class="conclusion">
+  <h2>結論 ｜ スキーム全体の総合結果</h2>
+  <div class="label">物件Bを売却したあとの手残り（終の住処の頭金）</div>
+  <div class="big" id="k_net">–</div>
+  <div class="stats">
+    <div><span class="k">終の住処 取得後の残ローン</span><b class="v" id="k_finalloan">–</b><span class="s">物件C購入時の借入</span></div>
+    <div><span class="k">スキーム全体で払う譲渡税</span><b class="v tax" id="k_tax">–</b><span class="s">現自宅＋物件B売却分</span></div>
+    <div><span class="k">住宅ローン控除の総額</span><b class="v pos" id="k_loantax">–</b><span class="s">物件Bで受ける減税</span></div>
+    <div><span class="k">物件B保有中の総支払利息</span><b class="v" id="k_interest">–</b><span class="s">売却時までの利息累計</span></div>
   </div>
   <div class="tl">
     <div class="tl-node"><div class="tl-dot"></div><div class="tl-year" id="tl0y">–</div><div class="tl-age" id="tl0a">–</div><div class="tl-ev">現自宅を売却<br>物件Bを購入</div></div>
@@ -109,9 +145,9 @@ button.act:hover{border-color:var(--accent)}
   </div>
   <canvas id="chart" width="1120" height="300"></canvas>
   <div class="legend">
-    <span><i style="background:#3b82f6"></i>自己資金（頭金として繰越す手残り）</span>
-    <span><i style="background:#f87171"></i>住宅ローン残高</span>
-    <span><i style="background:#fbbf24"></i>譲渡税の発生</span>
+    <span><i class="lg-eq"></i>自己資金（頭金として繰越す手残り）</span>
+    <span><i class="lg-loan"></i>住宅ローン残高</span>
+    <span><i class="lg-tax"></i>譲渡税の発生</span>
   </div>
 </div>
 
@@ -273,7 +309,7 @@ button.act:hover{border-color:var(--accent)}
 </div><!-- /grid -->
 
 <div class="note">
-  <b>⚠ 税務判断のポイント（先生の最終確認事項）</b><br>
+  <h3>税務判断のポイント（先生の最終確認事項）</h3>
   ① <b>3,000万円特別控除</b>は「居住用財産」であること・買主が親族等でないこと・前年前々年に同特例を使っていないことが要件。物件Bの購入年前後に住宅ローン控除を使うと<b>併用不可</b>の年がある点に注意。<br>
   ② <b>10年超所有の軽減税率</b>は所有期間が売却年1/1時点で10年超のとき。物件Bの保有年数の置き方で適用可否が変わる。<br>
   ③ <b>取得費の減価償却</b>は建物割合・構造で大きく動く。建物割合は契約書・固定資産税評価から実額を。取得価額が不明なら概算取得費（売却額×5%）。<br>
@@ -282,8 +318,8 @@ button.act:hover{border-color:var(--accent)}
   数値はすべて仮置き。最終的な適用可否・税額は山下先生の判断で確定。
 </div>
 
-<div class="foot">山下税理士事務所 / 自宅買い換えシミュレーター ── 試算ツール（法令・税率は 2026年時点の一般的な整理）</div>
-</div>
+</main>
+<footer>山下税理士事務所 ｜ okanefuyasu.net ｜ 自宅買い換えシミュレーター（法令・税率は 2026年時点の一般的な整理にもとづく概算）</footer>
 
 <script>
 // ===== ユーティリティ =====
@@ -481,7 +517,7 @@ function drawChart(){
   const padL=60, padB=46, padT=20, padR=20;
   const plotW=W-padL-padR, plotH=H-padT-padB;
   const bw=plotW/steps.length*0.5;
-  ctx.strokeStyle='#2a3a52'; ctx.lineWidth=1; ctx.fillStyle='#93a4bd'; ctx.font='12px sans-serif';
+  ctx.strokeStyle='#e3e3e3'; ctx.lineWidth=1; ctx.fillStyle='#5f6368'; ctx.font='12px sans-serif';
   for(let i=0;i<=4;i++){
     const y=padT+plotH*(i/4), val=maxV*(1-i/4);
     ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
@@ -491,18 +527,18 @@ function drawChart(){
     const cx=padL+plotW*((i+0.5)/steps.length);
     const eH=Math.max(0,s.equity)/maxV*plotH;
     const lH=Math.max(0,s.loan)/maxV*plotH;
-    ctx.fillStyle='#f87171';
+    ctx.fillStyle='#9a9a9a';
     ctx.fillRect(cx-bw/2, padT+plotH-lH, bw, lH);
-    ctx.fillStyle='#3b82f6';
+    ctx.fillStyle='#ffb547';
     ctx.fillRect(cx-bw/2, padT+plotH-lH-eH, bw, eH);
     if(s.tax>0.5){
-      ctx.fillStyle='#fbbf24';
+      ctx.fillStyle='#111';
       ctx.beginPath();ctx.arc(cx+bw/2+8, padT+plotH-lH-eH-10, 5, 0, Math.PI*2);ctx.fill();
       ctx.textAlign='left';ctx.fillText('税'+fmtMan(s.tax), cx+bw/2+16, padT+plotH-lH-eH-6);
     }
-    ctx.fillStyle='#e8eef7';ctx.textAlign='center';ctx.font='12px sans-serif';
+    ctx.fillStyle='#111';ctx.textAlign='center';ctx.font='12px sans-serif';
     ctx.fillText(s.label, cx, H-26);
-    ctx.fillStyle='#93a4bd';ctx.font='11px sans-serif';
+    ctx.fillStyle='#5f6368';ctx.font='11px sans-serif';
     ctx.fillText('自己'+fmtMan(s.equity), cx, H-12);
   });
 }
@@ -551,6 +587,15 @@ document.querySelectorAll('input,select').forEach(el=>{
   el.addEventListener('change', compute);
 });
 loadPreset('base');
+</script>
+<script>
+// 表示専用：#s2_net の表示文字列を結論ブロックの特大数字に写すだけ（計算はしない）
+(function(){
+  const src=document.getElementById('s2_net'), dst=document.getElementById('k_net');
+  const sync=()=>{ const t=src.textContent; const m=t.match(/^(.*)万$/);
+    dst.innerHTML = m ? '<span class="mark">'+m[1]+'</span><small>万円</small>' : '<span class="mark">'+t+'</span>'; };
+  new MutationObserver(sync).observe(src,{childList:true,characterData:true,subtree:true}); sync();
+})();
 </script>
 </body>
 </html>
